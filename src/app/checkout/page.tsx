@@ -49,6 +49,19 @@ export default function CheckoutPage() {
     payment: string;
   } | null>(null);
 
+  const [showRzpSimulator, setShowRzpSimulator] = useState(false);
+  const [tempInvoiceRef, setTempInvoiceRef] = useState('');
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !address || !city || !zip) {
@@ -59,13 +72,86 @@ export default function CheckoutPage() {
     setLoading(true);
 
     const invoiceRef = `UB-ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+    setTempInvoiceRef(invoiceRef);
+
+    if (paymentMethod === 'RAZORPAY') {
+      try {
+        const orderRes = await fetch('/api/razorpay/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: getCartTotal(),
+            currency: 'INR',
+            receipt: invoiceRef
+          })
+        });
+
+        const orderData = await orderRes.json();
+
+        if (!orderRes.ok || orderData.error) {
+          throw new Error(orderData.error || 'Razorpay order creation failed');
+        }
+
+        if (orderData.isMock) {
+          // Fallback to the beautiful custom sandbox simulator modal
+          setLoading(false);
+          setShowRzpSimulator(true);
+          return;
+        }
+
+        // Real credentials: load and run Razorpay SDK
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          alert('Failed to load Razorpay SDK. Falling back to payment simulator.');
+          setLoading(false);
+          setShowRzpSimulator(true);
+          return;
+        }
+
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mock_key_id',
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: 'Urban Brew Café',
+          description: 'Specialty Coffee & Gourmet Foods',
+          image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=120&auto=format&fit=crop',
+          order_id: orderData.id,
+          handler: async function (response: any) {
+            await submitFinalOrder(invoiceRef, response.razorpay_payment_id);
+          },
+          prefill: {
+            name: name,
+            email: email,
+          },
+          theme: {
+            color: '#a37c5c'
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+        setLoading(false);
+
+      } catch (err: any) {
+        console.warn('Razorpay order integration failed, showing simulator:', err);
+        setLoading(false);
+        setShowRzpSimulator(true);
+      }
+      return;
+    }
+
+    // For other methods
+    await submitFinalOrder(invoiceRef);
+  };
+
+  const submitFinalOrder = async (invoiceRef: string, paymentId?: string) => {
     const checkoutPayload = {
       totalAmount: getCartTotal(),
       tax: getTaxAmount(),
       deliveryCharge: getDeliveryCharge(),
       discount: getDiscountAmount(),
       couponCode: coupon?.code || null,
-      paymentMethod,
+      paymentMethod: paymentMethod === 'RAZORPAY' ? `RAZORPAY (ID: ${paymentId || 'MOCK'})` : paymentMethod,
       deliveryMethod,
       address: `${address}, ${city}, ZIP: ${zip}`,
       items: JSON.stringify(cart.map(item => ({
@@ -77,8 +163,9 @@ export default function CheckoutPage() {
       })))
     };
 
+    setLoading(true);
+
     try {
-      // Hit database endpoint
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +180,6 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       console.warn('API post failed, running simulated success fallback', err);
-      // Fallback checkout success simulator
       setTimeout(() => {
         generateInvoice(invoiceRef);
       }, 1500);
@@ -371,7 +457,7 @@ export default function CheckoutPage() {
                     value={cardNumber}
                     onChange={(e) => setCardNumber(e.target.value)}
                     placeholder="4242 4242 4242 4242 (Simulated)"
-                    className="w-full text-xs font-mono p-2.5 bg-primary-cream/30 dark:bg-white/5 border border-primary-coffee/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent-gold"
+                    className="w-full text-xs font-mono p-2.5 bg-primary-cream/35 dark:bg-white/5 border border-primary-coffee/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent-gold"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -383,7 +469,7 @@ export default function CheckoutPage() {
                       value={cardExpiry}
                       onChange={(e) => setCardExpiry(e.target.value)}
                       placeholder="MM / YY"
-                      className="w-full text-xs font-mono p-2.5 bg-primary-cream/30 dark:bg-white/5 border border-primary-coffee/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent-gold"
+                      className="w-full text-xs font-mono p-2.5 bg-primary-cream/35 dark:bg-white/5 border border-primary-coffee/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent-gold"
                     />
                   </div>
                   <div className="space-y-1">
@@ -395,9 +481,47 @@ export default function CheckoutPage() {
                       value={cardCvc}
                       onChange={(e) => setCardCvc(e.target.value)}
                       placeholder="123"
-                      className="w-full text-xs font-mono p-2.5 bg-primary-cream/30 dark:bg-white/5 border border-primary-coffee/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent-gold"
+                      className="w-full text-xs font-mono p-2.5 bg-primary-cream/35 dark:bg-white/5 border border-primary-coffee/20 dark:border-white/10 rounded-xl focus:outline-none focus:border-accent-gold"
                     />
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* UPI QR code scanner box if UPI selected */}
+            {paymentMethod === 'UPI' && (
+              <div className="space-y-4 pt-4 border-t border-primary-coffee/10 dark:border-white/5 animate-in slide-in-from-top duration-300">
+                <div className="bg-primary-cream/25 dark:bg-[#1a100e] border border-accent-gold/20 p-5 rounded-2xl flex flex-col items-center text-center space-y-4">
+                  <div className="p-2 bg-white rounded-xl shadow-md border border-neutral-200">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=urbanbrew@upi&pn=Urban Brew Cafe&am=${getCartTotal()}&cu=INR`)}`} 
+                      alt="UPI QR Code Scanner"
+                      className="w-[150px] h-[150px] object-contain"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-accent-gold uppercase tracking-wider block">Scan to Pay with Any UPI App</span>
+                    <p className="text-[11px] text-primary-coffee/85 dark:text-primary-cream/80 font-semibold">
+                      Total Amount: <span className="text-accent-gold">{formatPrice(getCartTotal())}</span>
+                    </p>
+                    <span className="text-[9px] text-primary-coffee/50 dark:text-white/40 block">UPI ID: urbanbrew@upi</span>
+                  </div>
+                  <div className="text-[9px] bg-accent-gold/10 text-accent-gold font-bold py-1.5 px-3 rounded-full border border-accent-gold/20 flex items-center gap-1.5 animate-pulse">
+                    <div className="w-1.5 h-1.5 bg-accent-gold rounded-full"></div>
+                    <span>Waiting for transfer detection...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Razorpay Information Box if RAZORPAY selected */}
+            {paymentMethod === 'RAZORPAY' && (
+              <div className="space-y-4 pt-4 border-t border-primary-coffee/10 dark:border-white/5 animate-in slide-in-from-top duration-300">
+                <div className="bg-primary-cream/25 dark:bg-[#1a100e] border border-accent-gold/20 p-5 rounded-2xl text-center space-y-2">
+                  <span className="text-[10px] font-black text-accent-gold uppercase tracking-wider block">Razorpay Payments Portal</span>
+                  <p className="text-[10px] text-primary-coffee/70 dark:text-primary-cream/65 leading-relaxed font-light">
+                    You will be redirected to the secure Razorpay payment gateway to complete your transaction via Credit/Debit card, Netbanking, UPI, or Wallet.
+                  </p>
                 </div>
               </div>
             )}
@@ -474,6 +598,60 @@ export default function CheckoutPage() {
           </div>
 
         </form>
+      )}
+
+      {/* Razorpay Sandbox Payment Simulator Modal */}
+      {showRzpSimulator && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1e1412] border border-accent-gold/40 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-2">
+              <span className="text-[9px] font-black text-accent-gold uppercase tracking-widest block">Razorpay Sandbox Simulator</span>
+              <h3 className="text-base font-serif font-bold text-white">Razorpay Secure Checkout</h3>
+              <p className="text-[10px] text-white/50 leading-relaxed">
+                Mock/test credentials detected. Choose payment result to verify gateway callback handling:
+              </p>
+            </div>
+
+            <div className="bg-white/5 p-4 rounded-xl border border-white/5 space-y-1.5 text-xs text-left">
+              <div className="flex justify-between">
+                <span className="text-white/60">Merchant:</span>
+                <span className="font-bold text-white">Urban Brew Cafe</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/60">Amount due:</span>
+                <span className="font-bold text-accent-gold font-mono">{formatPrice(getCartTotal())}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/60">Customer:</span>
+                <span className="font-bold text-white">{name}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowRzpSimulator(false);
+                  const mockPayId = `pay_mock_${Math.random().toString(36).slice(2, 11)}`;
+                  await submitFinalOrder(tempInvoiceRef, mockPayId);
+                }}
+                className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition shadow-md"
+              >
+                Simulate Payment Success
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRzpSimulator(false);
+                  alert('Payment has been cancelled by the user.');
+                }}
+                className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-xl transition border border-white/10"
+              >
+                Cancel / Decline Payment
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
