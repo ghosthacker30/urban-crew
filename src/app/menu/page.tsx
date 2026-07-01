@@ -20,7 +20,7 @@ function MenuContent() {
 
   const categories = [
     'All',
-    'Taccos',
+    'Hot Coffee',
     'Cold Coffee',
     'Tea',
     'Milkshakes',
@@ -30,6 +30,7 @@ function MenuContent() {
     'Breakfast',
     'Lunch',
     'Dinner',
+    'Taccos',
     'Wishlist'
   ];
 
