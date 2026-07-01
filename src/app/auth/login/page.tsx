@@ -38,30 +38,59 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setLoading(true);
 
-    setTimeout(() => {
-      // Check hardcoded seed accounts first
-      if (email === 'admin@urbanbrew.com' && password === 'admin123') {
-        const session = { name: 'Brew Master', role: 'ADMIN', email: 'admin@urbanbrew.com' };
-        localStorage.setItem('ub_session', JSON.stringify(session));
-        confetti({ particleCount: 60, spread: 40 });
-        // Use location.href for atomic redirect + reload to refresh Navbar session state
-        window.location.href = '/admin';
-        return;
-      }
-      if (email === 'customer@urbanbrew.com' && password === 'customer123') {
-        const session = { name: 'Shardul', role: 'USER', email: 'customer@urbanbrew.com' };
+    // 1. Check hardcoded seed accounts first
+    if (email === 'admin@urbanbrew.com' && password === 'admin123') {
+      const session = { name: 'Brew Master', role: 'ADMIN', email: 'admin@urbanbrew.com' };
+      localStorage.setItem('ub_session', JSON.stringify(session));
+      confetti({ particleCount: 60, spread: 40 });
+      window.location.href = '/admin';
+      return;
+    }
+    if (email === 'customer@urbanbrew.com' && password === 'customer123') {
+      const session = { name: 'Shardul', role: 'USER', email: 'customer@urbanbrew.com' };
+      localStorage.setItem('ub_session', JSON.stringify(session));
+      confetti({ particleCount: 60, spread: 40 });
+      window.location.href = '/home';
+      return;
+    }
+
+    try {
+      // 2. Try to verify credentials through the backend database API
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const session = { name: data.user.name, role: data.user.role || 'USER', email: data.user.email };
         localStorage.setItem('ub_session', JSON.stringify(session));
         confetti({ particleCount: 60, spread: 40 });
         window.location.href = '/home';
         return;
       }
 
-      // Check registered users saved by the signup form
+      // If the database check returned an explicit invalid email/password warning
+      if (res.status === 401 || !data.isDbDown) {
+        setErrorMsg(data.error || 'Invalid email or password.');
+        setLoading(false);
+        return;
+      }
+
+      // If it indicated a DB connection failure, fall through to Local Storage fallback
+      throw new Error(data.error || 'Database is down.');
+
+    } catch (error) {
+      console.warn('API login failed or database down, trying local storage validation fallback:', error);
+
+      // Local Storage Fallback Mode
       const registeredUsers: any[] = JSON.parse(localStorage.getItem('ub_users') || '[]');
       const found = registeredUsers.find(
         (u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
@@ -76,7 +105,7 @@ export default function LoginPage() {
         setErrorMsg('Invalid email or password. If you just registered, make sure you use the same credentials.');
         setLoading(false);
       }
-    }, 1000);
+    }
   };
 
   return (

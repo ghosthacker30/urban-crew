@@ -34,20 +34,52 @@ export default function SignupPage() {
     }
   }, [router]);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) return;
 
     setErrorMsg('');
     setLoading(true);
 
-    setTimeout(() => {
-      // Save the new user in localStorage so login can authenticate them
+    try {
+      // 1. Try to register through the database API
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Display specific API validation error (e.g. email already exists)
+        setErrorMsg(data.error || 'Registration failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Also save to local storage as a local session fallback
+      const existingUsers: any[] = JSON.parse(localStorage.getItem('ub_users') || '[]');
+      const alreadyExists = existingUsers.some((u: any) => u.email.toLowerCase() === email.toLowerCase());
+      if (!alreadyExists) {
+        existingUsers.push({ name, email, password, role: 'USER' });
+        localStorage.setItem('ub_users', JSON.stringify(existingUsers));
+      }
+
+      setLoading(false);
+      setSuccess(true);
+      confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+      setTimeout(() => router.push('/auth/login?registered=true'), 1800);
+
+    } catch (error) {
+      console.warn('API signup failed, falling back to local storage registration:', error);
+      
+      // Local Storage Fallback Mode
       const existingUsers: any[] = JSON.parse(localStorage.getItem('ub_users') || '[]');
       const alreadyExists = existingUsers.some((u: any) => u.email.toLowerCase() === email.toLowerCase());
 
       if (alreadyExists) {
-        setErrorMsg('An account with this email already exists. Please log in.');
+        setErrorMsg('An account with this email already exists in local storage. Please log in.');
         setLoading(false);
         return;
       }
@@ -57,17 +89,9 @@ export default function SignupPage() {
 
       setLoading(false);
       setSuccess(true);
-
-      confetti({
-        particleCount: 100,
-        spread: 60,
-        origin: { y: 0.6 }
-      });
-
-      setTimeout(() => {
-        router.push('/auth/login?registered=true');
-      }, 1800);
-    }, 1200);
+      confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+      setTimeout(() => router.push('/auth/login?registered=true'), 1800);
+    }
   };
 
   return (
