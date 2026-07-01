@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Award, ShieldCheck, Leaf, Heart } from 'lucide-react';
 
