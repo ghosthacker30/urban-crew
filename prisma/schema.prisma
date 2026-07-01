@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(USER)
+  rewardPoints Int           @default(0)
+  referrals    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  orders       Order[]
+  reservations Reservation[]
+  reviews      Review[]
+  auditLogs    AuditLog[]
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  image         String   @db.Text
+  price         Float
+  description   String   @db.Text
+  calories      Int
+  ingredients   String   @db.Text // JSON string or comma-separated list
+  nutritionInfo String   @db.Text // JSON string
+  category      String
+  isAvailable   Boolean  @default(true)
+  rating        Float    @default(5.0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  reviews       Review[]
+}
+
+model Order {
+  id             String        @id @default(uuid())
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  totalAmount    Float
+  tax            Float
+  deliveryCharge Float
+  discount       Float         @default(0)
+  couponCode     String?
+  status         OrderStatus   @default(PENDING)
+  paymentMethod  String        // "STRIPE", "RAZORPAY", "PAYPAL", "UPI", "COD"
+  paymentStatus  PaymentStatus @default(PENDING)
+  deliveryMethod String        // "DELIVERY", "PICKUP"
+  address        String        @db.Text
+  items          String        @db.Text // JSON string of order items with quantity & customization
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Reservation {
+  id          String            @id @default(uuid())
+  userId      String?
+  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName   String
+  guestEmail  String
+  guestPhone  String
+  date        String            // YYYY-MM-DD
+  timeSlot    String            // e.g. "10:00 AM - 11:30 AM"
+  tableNumber String
+  guestsCount Int
+  status      ReservationStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName  String
+  rating    Int
+  comment   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Blog {
+  id        String   @id @default(uuid())
+  title     String
+  slug      String   @unique
+  excerpt   String   @db.Text
+  content   String   @db.Text
+  image     String   @db.Text
+  readTime  String
+  author    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Coupon {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  discountType String   // "PERCENTAGE" or "FIXED"
+  value        Float
+  minPurchase  Float    @default(0)
+  expiryDate   DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String   @db.Text
+  timestamp DateTime @default(now())
+}
+
+model Newsletter {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  subscribedAt DateTime @default(now())
+}

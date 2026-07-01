@@ -1,65 +1,95 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Coffee, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+
+export default function WelcomePage() {
+  const router = useRouter();
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // If already authenticated, redirect straight to the main page /home
+  useEffect(() => {
+    const session = localStorage.getItem('ub_session');
+    if (session) {
+      router.push('/home');
+    } else {
+      setCheckingSession(false);
+    }
+  }, [router]);
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#150c0a] text-white space-y-4">
+        <Loader2 className="h-10 w-10 animate-spin text-accent-gold" />
+        <span className="text-xs uppercase tracking-widest text-primary-cream/60 font-bold">Opening Sanctuary...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="relative min-h-screen flex items-center justify-center bg-[#110908] overflow-hidden p-4">
+      {/* Background Cinematic coffee pour image overlay with zoom animation */}
+      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1400&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay transition-transform duration-[10s] scale-105 hover:scale-100"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-[#110908]/50 via-[#110908]/85 to-[#0b0403]"></div>
+
+      {/* Glow effects */}
+      <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-accent-gold/5 rounded-full filter blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent-gold/5 rounded-full filter blur-[100px] pointer-events-none"></div>
+
+      {/* Main Glassmorphic Card Container */}
+      <div className="w-full max-w-lg bg-[#1a100e]/80 border border-white/10 backdrop-blur-xl p-8 sm:p-12 rounded-[36px] shadow-2xl relative z-10 text-center space-y-8 animate-in fade-in zoom-in-95 duration-1000">
+        
+        {/* Brand Stamp Crest */}
+        <div className="relative inline-flex items-center justify-center p-4 bg-accent-gold/15 border border-accent-gold/30 rounded-full text-accent-gold shadow-lg hover:rotate-12 transition-transform duration-500 cursor-pointer">
+          <Coffee className="h-9 w-9" />
+          <div className="absolute inset-0 rounded-full border border-accent-gold/40 animate-ping opacity-25"></div>
+        </div>
+
+        {/* Header Text details */}
+        <div className="space-y-3">
+          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-accent-gold block">
+            Specialty Roasters & Salon
+          </span>
+          <h1 className="text-3xl sm:text-5xl font-serif font-black tracking-tight text-white leading-tight">
+            Urban Brew
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <div className="w-16 h-0.5 bg-accent-gold mx-auto rounded-full"></div>
+          <p className="text-xs text-primary-cream/80 font-light max-w-xs mx-auto leading-relaxed italic">
+            "Fresh Coffee. Fresh Moments."
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <p className="text-[11px] sm:text-xs text-primary-cream/60 max-w-sm mx-auto font-light leading-relaxed">
+          Step into a digital sanctuary of organic single-origin roasts, visual table bookings, and loyalty rewards curated daily.
+        </p>
+
+        {/* Action Button Pills */}
+        <div className="flex flex-col items-center justify-center gap-4 max-w-xs mx-auto pt-2">
+          <Link
+            href="/auth/signup"
+            className="w-full py-3.5 bg-accent-gold hover:bg-accent-gold/90 text-primary-dark font-black text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-xl flex items-center justify-center gap-2 hover:scale-[1.03]"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <span>Enter the Sanctuary</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          
+          <div className="text-[10px] text-primary-cream/55 tracking-wider font-semibold uppercase pt-2">
+            Already registered?{' '}
+            <Link href="/auth/login" className="text-accent-gold hover:underline font-bold pl-0.5">
+              Log In Here
+            </Link>
+          </div>
         </div>
-      </main>
+
+        {/* Small badge footer */}
+        <div className="pt-4 text-[8px] uppercase tracking-widest text-primary-cream/40 flex items-center justify-center gap-1.5 font-bold select-none border-t border-white/5">
+          <Sparkles className="h-3 w-3 text-accent-gold" />
+          <span>Voted #1 Specialty Brand 2026</span>
+        </div>
+
+      </div>
     </div>
   );
 }
