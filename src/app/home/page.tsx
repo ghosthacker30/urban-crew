@@ -14,14 +14,14 @@ import { useLanguageCurrency } from '@/context/LanguageCurrencyContext';
 const fallbackProducts: ProductType[] = [
   {
     id: 'f1',
-    name: 'Gold Flaked Espresso',
+    name: 'Taccos',
     price: 1.5,
-    description: 'Our signature double shot of espresso topped with subtle 24k edible gold flakes. Elegant, rich, and highly aromatic, made from premium organic single-origin Arabica beans.',
-    calories: 5,
-    ingredients: 'Double shot espresso, 24k gold flakes, spring water',
-    nutritionInfo: JSON.stringify({ carbs: '0g', fat: '0.2g', protein: '0.3g' }),
-    category: 'Hot Coffee',
-    image: 'https://images.unsplash.com/photo-1507133750040-4a8f57021571?q=80&w=600&auto=format&fit=crop',
+    description: 'Delicious authentic Mexican tacos with seasoned fillings, served with fresh lime, onions, cilantro, and traditional salsa.',
+    calories: 320,
+    ingredients: 'Corn tortillas, seasoned beef, cilantro, onion, lime, salsa',
+    nutritionInfo: JSON.stringify({ carbs: '24g', fat: '14g', protein: '18g' }),
+    category: 'Taccos',
+    image: 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?q=80&w=600&auto=format&fit=crop',
     rating: 4.9,
     isAvailable: true
   },
@@ -33,7 +33,7 @@ const fallbackProducts: ProductType[] = [
     calories: 120,
     ingredients: 'Organic espresso, Whole milk, Cocoa powder dusting',
     nutritionInfo: JSON.stringify({ carbs: '9g', fat: '5g', protein: '6g' }),
-    category: 'Hot Coffee',
+    category: 'Cold Coffee',
     image: 'https://images.unsplash.com/photo-1534778101976-62847782c213?q=80&w=600&auto=format&fit=crop',
     rating: 4.8,
     isAvailable: true

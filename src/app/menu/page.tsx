@@ -20,7 +20,7 @@ function MenuContent() {
 
   const categories = [
     'All',
-    'Hot Coffee',
+    'Taccos',
     'Cold Coffee',
     'Tea',
     'Milkshakes',
