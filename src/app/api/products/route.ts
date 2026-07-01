@@ -11,7 +11,7 @@ const fallbackProducts = [
     ingredients: 'Double shot espresso, 24k gold flakes, spring water',
     nutritionInfo: JSON.stringify({ carbs: '0g', fat: '0.2g', protein: '0.3g' }),
     category: 'Hot Coffee',
-    image: 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?q=80&w=600&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1507133750040-4a8f57021571?q=80&w=600&auto=format&fit=crop',
     rating: 4.9,
     isAvailable: true
   },
