@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Coffee, User, Mail, Lock, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
@@ -15,6 +15,24 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const session = localStorage.getItem('ub_session');
+      if (session) {
+        try {
+          const parsed = JSON.parse(session);
+          if (parsed.role === 'ADMIN') {
+            router.push('/admin');
+          } else {
+            router.push('/home');
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
+    }
+  }, [router]);
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();

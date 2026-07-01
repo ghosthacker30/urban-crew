@@ -20,8 +20,23 @@ export default function LoginPage() {
       if (params.get('registered') === 'true') {
         setRegisteredSuccess(true);
       }
+
+      // Check if already logged in and redirect to prevent showing the login page again
+      const session = localStorage.getItem('ub_session');
+      if (session) {
+        try {
+          const parsed = JSON.parse(session);
+          if (parsed.role === 'ADMIN') {
+            router.push('/admin');
+          } else {
+            router.push('/home');
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
     }
-  }, []);
+  }, [router]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,16 +49,15 @@ export default function LoginPage() {
         const session = { name: 'Brew Master', role: 'ADMIN', email: 'admin@urbanbrew.com' };
         localStorage.setItem('ub_session', JSON.stringify(session));
         confetti({ particleCount: 60, spread: 40 });
-        router.push('/admin');
-        setTimeout(() => window.location.reload(), 100);
+        // Use location.href for atomic redirect + reload to refresh Navbar session state
+        window.location.href = '/admin';
         return;
       }
       if (email === 'customer@urbanbrew.com' && password === 'customer123') {
         const session = { name: 'Shardul', role: 'USER', email: 'customer@urbanbrew.com' };
         localStorage.setItem('ub_session', JSON.stringify(session));
         confetti({ particleCount: 60, spread: 40 });
-        router.push('/home');
-        setTimeout(() => window.location.reload(), 100);
+        window.location.href = '/home';
         return;
       }
 
@@ -57,8 +71,7 @@ export default function LoginPage() {
         const session = { name: found.name, role: found.role || 'USER', email: found.email };
         localStorage.setItem('ub_session', JSON.stringify(session));
         confetti({ particleCount: 60, spread: 40 });
-        router.push('/home');
-        setTimeout(() => window.location.reload(), 100);
+        window.location.href = '/home';
       } else {
         setErrorMsg('Invalid email or password. If you just registered, make sure you use the same credentials.');
         setLoading(false);
